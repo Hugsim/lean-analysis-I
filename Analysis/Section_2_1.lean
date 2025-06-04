@@ -91,11 +91,12 @@ theorem Nat.induction (P : Nat → Prop) (hbase : P 0) (hind : ∀ n, P n → P 
   intro n
   induction n with
   | zero => exact hbase
-  | succ n ih => exact hind _ ih
+  | succ n ih => exact hind n ih
 
-abbrev Nat.recurse (f: Nat → Nat → Nat) (c: Nat) : Nat → Nat := fun n ↦ match n with
-| 0 => c
-| n++ => f n (recurse f c n)
+abbrev Nat.recurse (f: Nat → Nat → Nat) (c: Nat) : Nat → Nat :=
+  fun n ↦ match n with
+  | 0 => c
+  | n++ => f n (recurse f c n)
 
 /-- Proposition 2.1.16 (recursive definitions). -/
 theorem Nat.recurse_zero (f: Nat → Nat → Nat) (c: Nat) : Nat.recurse f c 0 = c := by rfl
@@ -107,25 +108,29 @@ theorem Nat.recurse_succ (f: Nat → Nat → Nat) (c: Nat) (n: Nat) : recurse f 
 theorem Nat.eq_recurse (f: Nat → Nat → Nat) (c: Nat) (a: Nat → Nat) : (a 0 = c ∧ ∀ n, a (n++) = f n (a n)) ↔ a = recurse f c := by
   constructor
   . intro ⟨ h0, hsucc ⟩
-    -- this proof is written to follow the structure of the original text.
-    apply funext; apply induction
+    apply funext
+    apply induction
     . exact h0
-    intro n hn
-    rw [hsucc n, recurse_succ, hn]
-  intro h
-  rw [h]
-  constructor
-  . exact recurse_zero _ _
-  exact recurse_succ _ _
+    . intro n
+      intro hn
+      rw [hsucc n]
+      rw [recurse_succ]
+      rw [hn]
+  . intro h
+    rw [h]
+    constructor
+    . exact recurse_zero _ _
+    . exact recurse_succ _ _
 
 
 /-- Proposition 2.1.16 (recursive definitions). -/
 theorem Nat.recurse_uniq (f: Nat → Nat → Nat) (c: Nat) : ∃! (a: Nat → Nat), a 0 = c ∧ ∀ n, a (n++) = f n (a n) := by
-apply ExistsUnique.intro (recurse f c)
-. constructor
-  . exact recurse_zero _ _
-  . exact recurse_succ _ _
-intro a
-exact (eq_recurse _ _ a).mp
+  apply ExistsUnique.intro (recurse f c)
+  . constructor
+    . exact recurse_zero _ _
+    . exact recurse_succ _ _
+  . intro a
+    exact (eq_recurse _ _ a).mp
+
 
 end Chapter2

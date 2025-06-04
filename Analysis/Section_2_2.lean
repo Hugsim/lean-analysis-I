@@ -42,40 +42,48 @@ example : (2:Nat) + 3 = 5 := by
 
 /-- Lemma 2.2.2 (n + 0 = n) -/
 lemma Nat.add_zero (n:Nat) : n + 0 = n := by
-  -- this proof is written to follow the structure of the original text.
-  revert n; apply induction
+  revert n
+  apply induction
   . exact zero_add 0
-  intro n ih
-  calc
-    (n++) + 0 = (n + 0)++ := by rfl
-    _ = n++ := by rw [ih]
+  . intro n ih
+    calc
+      (n++) + 0 = (n + 0)++ := by rfl
+      _ = n++ := by rw [ih]
 
 /-- Lemma 2.2.3 (n+(m++) = (n+m)++). -/
 lemma Nat.add_succ (n m:Nat) : n + (m++) = (n + m)++ := by
-  -- this proof is written to follow the structure of the original text.
-  revert n; apply induction
+  revert n
+  apply induction
   . rw [zero_add, zero_add]
-  intro n ih
-  rw [succ_add, ih]
-  rw [succ_add]
+  . intro n ih
+    rw [succ_add]
+    rw [ih]
+    rw [succ_add]
 
 
 /-- n++ = n + 1 (Why?) -/
 theorem Nat.succ_eq_add_one (n:Nat) : n++ = n + 1 := by
-  sorry
+  rw [← zero_succ]
+  rw [add_succ]
+  rw [add_zero]
 
 /-- Proposition 2.2.4 (Addition is commutative) -/
 theorem Nat.add_comm (n m:Nat) : n + m = m + n := by
   -- this proof is written to follow the structure of the original text.
-  revert n; apply induction
+  revert n
+  apply induction
   . rw [zero_add, add_zero]
-  intro n ih
-  rw [succ_add]
-  rw [add_succ, ih]
+  . intro n ih
+    rw [succ_add]
+    rw [add_succ, ih]
 
 /-- Proposition 2.2.5 (Addition is associative) / Exercise 2.2.1-/
 theorem Nat.add_assoc (a b c:Nat) : (a + b) + c = a + (b + c) := by
-  sorry
+  revert a
+  apply induction
+  . rw [zero_add, zero_add]
+  . intro a' ih
+    rw [succ_add, succ_add, succ_add, ih]
 
 /-- Proposition 2.2.6 (Cancellation law) -/
 theorem Nat.add_cancel_left (a b c:Nat) (habc: a + b = a + c) : b = c := by
@@ -83,11 +91,11 @@ theorem Nat.add_cancel_left (a b c:Nat) (habc: a + b = a + c) : b = c := by
   revert a; apply induction
   . intro hbc
     rwa [zero_add, zero_add] at hbc
-  intro a ih
-  intro hbc
-  rw [succ_add, succ_add] at hbc
-  replace hbc := succ_cancel hbc
-  exact ih hbc
+  . intro a ih
+    intro hbc
+    rw [succ_add, succ_add] at hbc
+    replace hbc := succ_cancel hbc
+    exact ih hbc
 
 
 /-- (Not from textbook) Nat can be given the structure of a commutative additive monoid. -/
@@ -108,10 +116,10 @@ theorem Nat.pos_add {a:Nat} (b:Nat) (ha: a.isPos) : (a + b).isPos := by
   -- this proof is written to follow the structure of the original text.
   revert b; apply induction
   . rwa [add_zero]
-  intro b hab
-  rw [add_succ]
-  have : (a+b)++ ≠ 0 := succ_ne _
-  exact this
+  . intro b hab
+    rw [add_succ]
+    have : (a+b)++ ≠ 0 := succ_ne _
+    exact this
 
 theorem Nat.add_pos {a:Nat} (b:Nat) (ha: a.isPos) : (b + a).isPos := by
   rw [add_comm]
@@ -119,20 +127,28 @@ theorem Nat.add_pos {a:Nat} (b:Nat) (ha: a.isPos) : (b + a).isPos := by
 
 /-- Corollary 2.2.9 (if sum vanishes, then summands vanish).-/
 theorem Nat.add_eq_zero (a b:Nat) (hab: a + b = 0) : a = 0 ∧ b = 0 := by
-  -- this proof is written to follow the structure of the original text.
   by_contra h
-  simp only [not_and_or, ←ne_eq] at h
-  rcases h with ha | hb
-  . rw [← isPos_iff] at ha
-    have : (a + b).isPos := pos_add _ ha
+  simp only [not_and_or, ← ne_eq] at h
+  rcases h with hl | hr
+  . rw [← isPos_iff] at hl
+    apply pos_add b at hl
     contradiction
-  rw [← isPos_iff] at hb
-  have : (a + b).isPos := add_pos _ hb
-  contradiction
+  . rw [← isPos_iff] at hr
+    apply pos_add a at hr
+    rw [add_comm] at hr
+    contradiction
+
 
 /-- Lemma 2.2.10 (unique predecessor) / Exercise 2.2.2 -/
 lemma Nat.uniq_succ_eq (a:Nat) (ha: a.isPos) : ∃! b, b++ = a := by
-  sorry
+  revert a; apply induction
+  . intro ha
+    contradiction
+  . intro a' ih ha
+    apply ExistsUnique.intro a'
+    . rfl
+    . intro y
+      exact succ_cancel
 
 /-- Definition 2.2.11 (Ordering of the natural numbers) -/
 instance Nat.instLE : LE Nat where
@@ -158,7 +174,7 @@ lemma Nat.le_iff_lt_or_eq (n m:Nat) : n ≤ m ↔ n < m ∨ n = m := by
   . simp [h]
     use 0
     rw [add_zero]
-  simp [h]
+  . simp [h]
 
 example : (8:Nat) > 5 := by
   rw [Nat.gt_iff_lt, Nat.lt_iff]
@@ -166,28 +182,68 @@ example : (8:Nat) > 5 := by
   . have : (8:Nat) = 5 + 3 := by rfl
     rw [this]
     use 3
-  decide
+  . decide
+
+theorem Nat.num_ne_succ (n:Nat) : n ≠ n++ := by
+  revert n; apply induction
+  . tauto
+  . intro n ih
+    apply succ_ne_succ
+    exact ih
 
 theorem Nat.succ_gt (n:Nat) : n++ > n := by
-  sorry
+  rw [gt_iff_lt]
+  constructor
+  . use 1
+    rw [succ_eq_add_one]
+  . exact num_ne_succ n
+
 
 /-- Proposition 2.2.12 (Basic properties of order for natural numbers) / Exercise 2.2.3
 
 (a) (Order is reflexive). -/
 theorem Nat.ge_refl (a:Nat) : a ≥ a := by
-  sorry
+  use 0
+  rw [add_zero]
 
 /-- (b) (Order is transitive) -/
 theorem Nat.ge_trans {a b c:Nat} (hab: a ≥ b) (hbc: b ≥ c) : a ≥ c := by
-  sorry
+  rcases hab with ⟨ab', hab⟩
+  rcases hbc with ⟨bc', hbc⟩
+  rw [hbc] at hab
+  rw [add_assoc] at hab
+  use bc' + ab'
+
+theorem Nat.eq_0_of_idempotent_add (a b : Nat) (h : a = a + b) : b = 0 := by
+  nth_rewrite 1 [← add_zero a] at h
+  apply add_cancel_left a 0 b at h
+  apply eq_comm.mp
+  exact h
 
 /-- (c) (Order is anti-symmetric)  -/
 theorem Nat.ge_antisymm {a b:Nat} (hab: a ≥ b) (hba: b ≥ a) : a = b := by
-  sorry
+  rcases hab with ⟨ab', hab⟩
+  rcases hba with ⟨ba', hba⟩
+  rw [hba] at hab
+  rw [add_assoc] at hab
+  apply eq_0_of_idempotent_add a (ba' + ab') at hab
+  apply add_eq_zero at hab
+  rw [hab.left, add_zero, eq_comm] at hba
+  exact hba
 
 /-- (d) (Addition preserves order)  -/
 theorem Nat.add_ge_add_right (a b c:Nat) : a ≥ b ↔ a + c ≥ b + c := by
-  sorry
+  constructor
+  . intro hab
+    rcases hab with ⟨ab', hab⟩
+    use ab'
+    rw [hab, add_assoc, add_comm ab' c, add_assoc]
+  . intro hacbc
+    rcases hacbc with ⟨d, hd⟩
+    use d
+    rw [add_comm a c, add_comm b c, add_assoc] at hd
+    apply add_cancel_left at hd
+    exact hd
 
 /-- (d) (Addition preserves order)  -/
 theorem Nat.add_ge_add_left (a b c:Nat) : a ≥ b ↔ c + a ≥ c + b := by
@@ -202,15 +258,63 @@ theorem Nat.add_le_add_left (a b c:Nat) : a ≤ b ↔ c + a ≤ c + b := add_ge_
 
 /-- (e) a < b iff a++ ≤ b. -/
 theorem Nat.lt_iff_succ_le (a b:Nat) : a < b ↔ a++ ≤ b := by
-  sorry
+  constructor
+  . intro ab
+    rcases ab with ⟨⟨abd, hab⟩, aneb⟩
+    have ab'Pos : abd ≠ 0 := by
+      by_contra abeq0
+      rw [abeq0, add_zero, eq_comm] at hab
+      contradiction
+    have := uniq_succ_eq abd ab'Pos
+    rcases this with ⟨abd', habd, h⟩
+    use abd'
+    rw [succ_add, add_comm, ← succ_add, habd, add_comm]
+    exact hab
+  . intro ab
+    rcases ab with ⟨abd, h⟩
+    constructor
+    . rw [succ_add, add_comm, ← succ_add, add_comm] at h
+      use (abd++)
+    . by_contra ab
+      rw [← ab] at h
+      have h1 : a++ ≥ a := by
+        use 1
+        exact succ_eq_add_one a
+      have h2 : a ≥ a++ := by
+        use abd
+      have eq : a++ = a := by apply ge_antisymm h1 h2
+      have neq : a++ ≠ a := by
+        rw [ne_comm]
+        exact num_ne_succ a
+      contradiction
+
 
 /-- (f) a < b if and only if b = a + d for positive d. -/
 theorem Nat.lt_iff_add_pos (a b:Nat) : a < b ↔ ∃ d:Nat, d.isPos ∧ b = a + d := by
-  sorry
+  constructor
+  . intro ⟨⟨abd, hab⟩, aneb⟩
+    use abd
+    constructor
+    . rw [isPos]
+      by_contra aeq0
+      rw [aeq0, add_zero, eq_comm] at hab
+      contradiction
+    . exact hab
+  . intro ⟨abd, abdPos, ab⟩
+    constructor
+    . use abd
+    . by_contra aeqb
+      rw [← aeqb] at ab
+      have : abd = 0 := by
+        exact eq_0_of_idempotent_add a abd ab
+      contradiction
+
 
 /-- If a < b then a ̸= b,-/
 theorem Nat.ne_of_lt (a b:Nat) : a < b → a ≠ b := by
-  intro h; exact h.2
+  intro h
+  rcases h with ⟨d, hab⟩
+  exact hab
 
 /-- if a > b then a ̸= b. -/
 theorem Nat.ne_of_gt (a b:Nat) : a > b → a ≠ b := by
