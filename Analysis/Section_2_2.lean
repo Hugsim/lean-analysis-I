@@ -327,24 +327,44 @@ theorem Nat.not_lt_of_gt (a b:Nat) : a < b ∧ a > b → False := by
   have := ne_of_lt _ _ h.1
   contradiction
 
+theorem Nat.zero_le (a:Nat) : 0 ≤ a := by
+  use a
+  tauto
+
+theorem Nat.gt_trans {a b c:Nat} (ab : a > b) (bc : b > c) : a > c := by
+  constructor
+  . rcases ab with ⟨⟨abd, ab'⟩, aneb⟩
+    rcases bc with ⟨⟨bcd, bc'⟩, bnec⟩
+    rw [bc', add_assoc] at ab'
+    use (bcd+abd)
+  . by_contra aeqc
+    rw [aeqc] at bc
+    apply not_lt_of_gt a b
+    exact ⟨bc, ab⟩
 
 /-- Proposition 2.2.13 (Trichotomy of order for natural numbers) / Exercise 2.2.4 -/
 theorem Nat.trichotomous (a b:Nat) : a < b ∨ a = b ∨ a > b := by
   -- this proof is written to follow the structure of the original text.
   revert a; apply induction
   . have why : 0 ≤ b := by
-      sorry
+      exact zero_le b
     replace why := (Nat.le_iff_lt_or_eq _ _).mp why
     tauto
-  intro a ih
-  rcases ih with case1 | case2 | case3
-  . rw [lt_iff_succ_le] at case1
-    rw [Nat.le_iff_lt_or_eq] at case1
-    tauto
-  . have why : a++ > b := by sorry
-    tauto
-  have why : a++ > b := by sorry
-  tauto
+  . intro a ih
+    rcases ih with case1 | case2 | case3
+    . rw [lt_iff_succ_le] at case1
+      rw [Nat.le_iff_lt_or_eq] at case1
+      tauto
+    . have why : a++ > b := by
+        constructor
+        . rw [succ_eq_add_one, case2]
+          use 1
+        . rw [case2]
+          exact num_ne_succ b
+      tauto
+    . have why : a++ > b := by
+        exact (gt_trans (succ_gt a) case3)
+      tauto
 
 /-- (Not from textbook) The order is decidable.  This exercise is only recommended for Lean experts. -/
 instance Nat.decidableRel : DecidableRel (· ≤ · : Nat → Nat → Prop) := by
@@ -354,9 +374,33 @@ instance Nat.decidableRel : DecidableRel (· ≤ · : Nat → Nat → Prop) := b
 instance Nat.linearOrder : LinearOrder Nat where
   le_refl := ge_refl
   le_trans a b c hab hbc := ge_trans hbc hab
-  lt_iff_le_not_le := sorry
+  lt_iff_le_not_le := by sorry
+    -- intro a b
+    -- constructor
+    -- . intro ab
+    --   constructor
+    --   . exact le_of_lt ab
+    --   . by_contra ba
+    --     apply (le_iff_lt_or_eq b a).mp at ba
+    --     rcases ba with lt | eq
+    --     . exact not_lt_of_gt a b ⟨ab, lt⟩
+    --     . rw [eq] at ab
+    --       apply ne_of_lt a at ab
+    --       contradiction
+    -- . intro ⟨aleb, nblea⟩
+    --   have : ¬(b < a ∨ b = a) := by
+    --     unfold instLE at aleb
   le_antisymm a b hab hba := ge_antisymm hba hab
-  le_total := sorry
+  le_total := by
+    intro a b
+    rcases (trichotomous a b) with lt | eq | gt
+    . left
+      exact le_of_lt lt
+    . left
+      use 0
+      rw [eq, add_zero]
+    . right
+      exact le_of_lt gt
   toDecidableLE := decidableRel
 
 /-- (Not from textbook) Nat has the structure of an ordered monoid. -/
@@ -368,7 +412,14 @@ instance Nat.isOrderedAddMonoid : IsOrderedAddMonoid Nat where
 /-- Proposition 2.2.14 (Strong principle of induction) / Exercise 2.2.5
 -/
 theorem Nat.strong_induction {m₀:Nat} {P: Nat → Prop} (hind: ∀ m, m ≥ m₀ → (∀ m', m₀ ≤ m' ∧ m' < m → P m') → P m) : ∀ m, m ≥ m₀ → P m := by
-  sorry
+  have Q n : ∀ m, m₀ ≤ m ∧ m < n → P m := by
+    intro m
+    sorry
+  apply induction
+  . intro m₀ge0
+    sorry
+  . sorry
+
 
 /-- Exercise 2.2.6 (backwards induction) -/
 theorem Nat.backwards_induction {n:Nat} {P: Nat → Prop}  (hind: ∀ m, P (m++) → P m) (hn: P n) : ∀ m, m ≤ n → P m := by
